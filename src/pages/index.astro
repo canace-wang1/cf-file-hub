@@ -1,0 +1,152 @@
+---
+// 先写模拟数据，后面对接D1再替换
+const files = [
+  {
+    id: 1,
+    name: "Cloudflare CDN vs Akamai CDN.pdf",
+    category: "Competitive Information",
+    file_type: "PDF",
+    size: 207 * 1024,
+    upload_date: "2025/6/19"
+  },
+  {
+    id: 2,
+    name: "Appsec - Cloudflare Implementation Plan.xlsx",
+    category: "Deployment",
+    file_type: "XLSX",
+    size: 10.6 * 1024,
+    upload_date: "2025/6/19"
+  }
+];
+const categories = [...new Set(files.map(f => f.category))];
+---
+
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件管理 | Cloudflare Tech Hub</title>
+  <style>
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+
+    /* 顶部导航 */
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .header h1 span { color: #f97316; }
+    .header p { font-size: 1.1rem; opacity: 0.9; }
+
+    /* 主容器 */
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+
+    /* 搜索框 */
+    .search-bar {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+
+    /* 分类标签 */
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 20px;
+      background: #f1f5f9;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .tab.active { background: #f97316; color: white; }
+
+    /* 文件卡片网格 */
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+
+    /* 文件卡片 */
+    .file-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .file-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .file-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; color: #64748b; }
+    .file-tag {
+      background: #fff7ed;
+      color: #ea580c;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+    .file-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .btn {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+      font-size: 0.9rem;
+    }
+    .btn-preview { background: #f1f5f9; color: #334155; }
+    .btn-download { background: linear-gradient(90deg, #f97316, #ef4444); color: white; }
+  </style>
+</head>
+<body>
+  <!-- 顶部导航 -->
+  <header class="header">
+    <h1>文件<span>管理</span></h1>
+    <p>浏览和下载合作伙伴资源与文档。</p>
+  </header>
+
+  <main class="container">
+    <!-- 搜索框 -->
+    <input type="text" class="search-bar" placeholder="搜索文件..." />
+
+    <!-- 分类标签 -->
+    <div class="category-tabs">
+      <button class="tab active">All</button>
+      {categories.map(cat => (
+        <button class="tab">{cat}</button>
+      ))}
+    </div>
+
+    <!-- 文件卡片列表 -->
+    <div class="file-grid">
+      {files.map(file => (
+        <div class="file-card">
+          <div class="file-title">{file.name}</div>
+          <div class="file-meta">
+            <span class="file-tag">{file.category}</span>
+            <span>{file.file_type}</span>
+            <span>{(file.size / 1024).toFixed(1)} KB</span>
+          </div>
+          <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem;">
+            📅 {file.upload_date}
+          </div>
+          <div class="file-actions">
+            <button class="btn btn-preview">👁️ 预览</button>
+            <button class="btn btn-download">⬇️ 下载</button>
+          </div>
+        </div>
+      ))}
+    </div>
+  </main>
+</body>
+</html>
