@@ -3,11 +3,9 @@ let files = [];
 let error = null;
 
 try {
-  // 直接读取所有文件
   const result = await process.env.DB.prepare("SELECT * FROM files").all();
   files = result.results;
 } catch (err) {
-  // 捕获错误，方便排查
   error = err.message;
 }
 ---
