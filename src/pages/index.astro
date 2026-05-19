@@ -1,21 +1,16 @@
 ---
-const files = await caches.default.match('files-list').then(async (cache) => {
-  if (cache) return await cache.json();
-
+// 直接从 D1 数据库读取数据
+let files = [];
+try {
   const { results } = await process.env.DB.prepare(`
-    SELECT * FROM files
+    SELECT * FROM files ORDER BY upload_date DESC
   `).all();
+  files = results;
+} catch (err) {
+  console.error("读取数据库失败:", err);
+}
 
-  await caches.default.put(
-    'files-list',
-    new Response(JSON.stringify(results), {
-      headers: { 'cache-control': 'max-age=10' }
-    })
-  );
-
-  return results;
-});
-
+// 提取所有分类
 const categories = [...new Set(files.map(f => f.category))];
 ---
 
@@ -57,6 +52,7 @@ const categories = [...new Set(files.map(f => f.category))];
       border-radius: 20px;
       background: #f1f5f9;
       cursor: pointer;
+      transition: all 0.2s;
     }
     .tab.active { background: #f97316; color: white; }
     .file-grid {
@@ -113,7 +109,7 @@ const categories = [...new Set(files.map(f => f.category))];
           <div class="file-meta">
             <span class="file-tag">{file.category}</span>
             <span>{file.file_type}</span>
-            <span>{file.size} KB</span>
+            <span>{Math.round(file.size / 1024)} KB</span>
           </div>
           <div>📅 {file.upload_date}</div>
           <div class="file-actions">
