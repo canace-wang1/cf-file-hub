@@ -1,23 +1,21 @@
 ---
-// 先写模拟数据，后面对接D1再替换
-const files = [
-  {
-    id: 1,
-    name: "Cloudflare CDN vs Akamai CDN.pdf",
-    category: "Competitive Information",
-    file_type: "PDF",
-    size: 207 * 1024,
-    upload_date: "2025/6/19"
-  },
-  {
-    id: 2,
-    name: "Appsec - Cloudflare Implementation Plan.xlsx",
-    category: "Deployment",
-    file_type: "XLSX",
-    size: 10.6 * 1024,
-    upload_date: "2025/6/19"
-  }
-];
+const files = await caches.default.match('files-list').then(async (cache) => {
+  if (cache) return await cache.json();
+
+  const { results } = await process.env.DB.prepare(`
+    SELECT * FROM files
+  `).all();
+
+  await caches.default.put(
+    'files-list',
+    new Response(JSON.stringify(results), {
+      headers: { 'cache-control': 'max-age=10' }
+    })
+  );
+
+  return results;
+});
+
 const categories = [...new Set(files.map(f => f.category))];
 ---
 
@@ -30,8 +28,6 @@ const categories = [...new Set(files.map(f => f.category))];
   <style>
     * { box-sizing: border-box; margin: 0; padding: 0; }
     body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
-
-    /* 顶部导航 */
     .header {
       background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
       color: white;
@@ -40,12 +36,7 @@ const categories = [...new Set(files.map(f => f.category))];
     }
     .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
     .header h1 span { color: #f97316; }
-    .header p { font-size: 1.1rem; opacity: 0.9; }
-
-    /* 主容器 */
     .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-
-    /* 搜索框 */
     .search-bar {
       width: 100%;
       padding: 0.8rem 1rem;
@@ -54,8 +45,6 @@ const categories = [...new Set(files.map(f => f.category))];
       margin-bottom: 1.5rem;
       font-size: 1rem;
     }
-
-    /* 分类标签 */
     .category-tabs {
       display: flex;
       flex-wrap: wrap;
@@ -68,18 +57,13 @@ const categories = [...new Set(files.map(f => f.category))];
       border-radius: 20px;
       background: #f1f5f9;
       cursor: pointer;
-      font-size: 0.9rem;
     }
     .tab.active { background: #f97316; color: white; }
-
-    /* 文件卡片网格 */
     .file-grid {
       display: grid;
       grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
       gap: 1.5rem;
     }
-
-    /* 文件卡片 */
     .file-card {
       background: white;
       border-radius: 12px;
@@ -102,24 +86,19 @@ const categories = [...new Set(files.map(f => f.category))];
       border: none;
       border-radius: 8px;
       cursor: pointer;
-      font-size: 0.9rem;
     }
-    .btn-preview { background: #f1f5f9; color: #334155; }
-    .btn-download { background: linear-gradient(90deg, #f97316, #ef4444); color: white; }
+    .btn-preview { background: #f1f5f9; }
+    .btn-download { background: #f97316; color: white; }
   </style>
 </head>
 <body>
-  <!-- 顶部导航 -->
   <header class="header">
     <h1>文件<span>管理</span></h1>
-    <p>浏览和下载合作伙伴资源与文档。</p>
+    <p>从 D1 数据库实时加载文件</p>
   </header>
 
   <main class="container">
-    <!-- 搜索框 -->
-    <input type="text" class="search-bar" placeholder="搜索文件..." />
-
-    <!-- 分类标签 -->
+    <input class="search-bar" placeholder="搜索文件..." />
     <div class="category-tabs">
       <button class="tab active">All</button>
       {categories.map(cat => (
@@ -127,7 +106,6 @@ const categories = [...new Set(files.map(f => f.category))];
       ))}
     </div>
 
-    <!-- 文件卡片列表 -->
     <div class="file-grid">
       {files.map(file => (
         <div class="file-card">
@@ -135,11 +113,9 @@ const categories = [...new Set(files.map(f => f.category))];
           <div class="file-meta">
             <span class="file-tag">{file.category}</span>
             <span>{file.file_type}</span>
-            <span>{(file.size / 1024).toFixed(1)} KB</span>
+            <span>{file.size} KB</span>
           </div>
-          <div style="font-size: 0.85rem; color: #94a3b8; margin-bottom: 1rem;">
-            📅 {file.upload_date}
-          </div>
+          <div>📅 {file.upload_date}</div>
           <div class="file-actions">
             <button class="btn btn-preview">👁️ 预览</button>
             <button class="btn btn-download">⬇️ 下载</button>
