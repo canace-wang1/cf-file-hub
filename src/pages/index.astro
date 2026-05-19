@@ -1,20 +1,7 @@
 ---
-// 从 D1 读取文件列表
-let files = [];
-try {
-  const { results } = await process.env.DB.prepare(`
-    SELECT * FROM files ORDER BY upload_date DESC
-  `).all();
-  files = results;
-} catch (err) {
-  console.error("读取数据库失败:", err);
-}
-
-// 提取所有分类
-const categories = [...new Set(files.map(f => f.category))];
-
-// 你的 R2 公开访问地址
-const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
+const files = await process.env.DB.prepare("SELECT * FROM files ORDER BY upload_date DESC").all();
+const categories = [...new Set(files.results?.map(i => i.category) || [])];
+const R2_PUBLIC_URL = "https://ppt.test.yaozi1350.cc";
 ---
 
 <!DOCTYPE html>
@@ -22,108 +9,48 @@ const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>文件管理 | Cloudflare Tech Hub</title>
+  <title>Cloudflare 文件管理</title>
   <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
-    .header {
-      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
-      color: white;
-      padding: 4rem 2rem;
-      text-align: center;
-    }
-    .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
-    .header h1 span { color: #f97316; }
-    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
-    .search-bar {
-      width: 100%;
-      padding: 0.8rem 1rem;
-      border: 1px solid #e2e8f0;
-      border-radius: 8px;
-      margin-bottom: 1.5rem;
-      font-size: 1rem;
-    }
-    .category-tabs {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.75rem;
-      margin-bottom: 2rem;
-    }
-    .tab {
-      padding: 0.5rem 1rem;
-      border: none;
-      border-radius: 20px;
-      background: #f1f5f9;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .tab.active { background: #f97316; color: white; }
-    .file-grid {
-      display: grid;
-      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
-      gap: 1.5rem;
-    }
-    .file-card {
-      background: white;
-      border-radius: 12px;
-      padding: 1.5rem;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-    }
-    .file-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
-    .file-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; color: #64748b; }
-    .file-tag {
-      background: #fff7ed;
-      color: #ea580c;
-      padding: 0.2rem 0.6rem;
-      border-radius: 12px;
-      font-size: 0.75rem;
-    }
-    .file-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
-    .btn {
-      flex: 1;
-      padding: 0.6rem;
-      border: none;
-      border-radius: 8px;
-      cursor: pointer;
-    }
-    .btn-preview { background: #f1f5f9; }
-    .btn-download { background: #f97316; color: white; }
+    *{box-sizing:border-box;margin:0;padding:0}
+    body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif;background:#f8fafc}
+    .header{background:linear-gradient(135deg,#1e293b,#0f172a);color:white;padding:3rem 1rem;text-align:center}
+    .container{max-width:1100px;margin:0 auto;padding:2rem 1rem}
+    .cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;margin-top:1.5rem}
+    .card{background:white;border-radius:16px;box-shadow:0 4px 12px rgba(0,0,0,0.05);padding:1.5rem}
+    .badge{display:inline-block;padding:4px 10px;border-radius:20px;font-size:12px;background:#eff6ff;color:#1d4ed8;margin-right:6px}
+    .btn{display:inline-block;margin-top:12px;padding:8px 14px;background:#2563eb;color:white;border:none;border-radius:10px;text-decoration:none;font-size:14px}
+    h1{margin-bottom:0.5rem}
+    p{color:#94a3b8}
+    h3{font-size:16px;margin-bottom:8px;color:#1e293b}
+    .meta{font-size:13px;color:#64748b;margin:6px 0 10px}
   </style>
 </head>
 <body>
-  <header class="header">
-    <h1>文件<span>管理</span></h1>
-    <p>从 D1 数据库实时加载文件，支持直接下载</p>
-  </header>
+  <div class="header">
+    <h1>Cloudflare 文件管理中心</h1>
+    <p>数据来自 D1 + 文件存储来自 R2</p>
+  </div>
 
-  <main class="container">
-    <input class="search-bar" placeholder="搜索文件..." />
-    <div class="category-tabs">
-      <button class="tab active">All</button>
-      {categories.map(cat => (
-        <button class="tab">{cat}</button>
-      ))}
+  <div class="container">
+    <div style="margin-bottom:1rem">
+      {categories.map(cat => <span class="badge">{cat}</span>)}
     </div>
 
-    <div class="file-grid">
-      {files.map(file => (
-        <div class="file-card">
-          <div class="file-title">{file.name}</div>
-          <div class="file-meta">
-            <span class="file-tag">{file.category}</span>
-            <span>{file.file_type}</span>
-            <span>{Math.round(file.size / 1024)} KB</span>
+    <div class="cards">
+      {files.results?.map(file => (
+        <div class="card">
+          <h3>{file.name}</h3>
+          <div class="meta">
+            <span>{file.file_type}</span> • 
+            <span>{Math.round(file.size / 1024)} KB</span> • 
+            <span>{file.category}</span>
           </div>
-          <div>📅 {file.upload_date}</div>
-          <div class="file-actions">
-            <button class="btn btn-preview">👁️ 预览</button>
-            <a href={`${R2_BASE_URL}/${file.r2_key}`} target="_blank" style="flex:1;">
-              <button class="btn btn-download" style="width:100%;">⬇️ 下载</button>
-            </a>
-          </div>
+          <a href={`${R2_PUBLIC_URL}/${file.r2_key}`} target="_blank" class="btn">
+            下载文件
+          </a>
         </div>
       ))}
     </div>
-  </main>
+  </div>
 </body>
 </html>
