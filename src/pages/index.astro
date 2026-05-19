@@ -1,42 +1,133 @@
 ---
+// 运行时从 D1 读取数据（SSR 模式下才能生效）
 let files = [];
 let error = null;
 
 try {
-  const result = await process.env.DB.prepare("SELECT * FROM files").all();
-  files = result.results;
+  const { results } = await process.env.DB.prepare(`
+    SELECT * FROM files ORDER BY upload_date DESC
+  `).all();
+  files = results;
 } catch (err) {
   error = err.message;
 }
+
+const categories = [...new Set(files.map(f => f.category))];
+const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
 ---
 
 <!DOCTYPE html>
-<html>
+<html lang="zh-CN">
 <head>
   <meta charset="UTF-8">
-  <title>D1 调试页面</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>文件管理 | Cloudflare Tech Hub</title>
   <style>
-    body { font-family: system-ui; padding: 2rem; max-width: 800px; margin: 0 auto; }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; background: #f8fafc; }
+    .header {
+      background: linear-gradient(135deg, #0f172a 0%, #0c4a6e 100%);
+      color: white;
+      padding: 4rem 2rem;
+      text-align: center;
+    }
+    .header h1 { font-size: 2.5rem; margin-bottom: 0.5rem; }
+    .header h1 span { color: #f97316; }
+    .container { max-width: 1200px; margin: 2rem auto; padding: 0 1rem; }
+    .search-bar {
+      width: 100%;
+      padding: 0.8rem 1rem;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      margin-bottom: 1.5rem;
+      font-size: 1rem;
+    }
+    .category-tabs {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 0.75rem;
+      margin-bottom: 2rem;
+    }
+    .tab {
+      padding: 0.5rem 1rem;
+      border: none;
+      border-radius: 20px;
+      background: #f1f5f9;
+      cursor: pointer;
+      transition: all 0.2s;
+    }
+    .tab.active { background: #f97316; color: white; }
+    .file-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+      gap: 1.5rem;
+    }
+    .file-card {
+      background: white;
+      border-radius: 12px;
+      padding: 1.5rem;
+      box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+    }
+    .file-title { font-size: 1rem; font-weight: 600; margin-bottom: 0.75rem; }
+    .file-meta { display: flex; flex-wrap: wrap; gap: 0.5rem; margin-bottom: 1rem; font-size: 0.85rem; color: #64748b; }
+    .file-tag {
+      background: #fff7ed;
+      color: #ea580c;
+      padding: 0.2rem 0.6rem;
+      border-radius: 12px;
+      font-size: 0.75rem;
+    }
+    .file-actions { display: flex; gap: 0.75rem; margin-top: 1rem; }
+    .btn {
+      flex: 1;
+      padding: 0.6rem;
+      border: none;
+      border-radius: 8px;
+      cursor: pointer;
+    }
+    .btn-preview { background: #f1f5f9; }
+    .btn-download { background: #f97316; color: white; }
     .error { background: #fee; color: #a00; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
-    .file { border: 1px solid #eee; padding: 1rem; border-radius: 8px; margin-bottom: 0.5rem; }
   </style>
 </head>
 <body>
-  <h1>D1 数据库调试</h1>
+  <header class="header">
+    <h1>文件<span>管理</span></h1>
+    <p>从 D1 数据库 + R2 存储实时加载文件</p>
+  </header>
 
-  {#if error}
-    <div class="error">❌ 读取数据库失败: {error}</div>
-  {/if}
+  <main class="container">
+    {#if error}
+      <div class="error">❌ 读取数据库失败: {error}</div>
+    {/if}
 
-  <h3>数据库文件数量: {files.length}</h3>
-
-  {#each files as file}
-    <div class="file">
-      <p><strong>{file.name}</strong></p>
-      <p>分类: {file.category} | 类型: {file.file_type}</p>
-      <p>R2路径: {file.r2_key}</p>
-      <a href={`https://ppt.test.yaozi1350.cc/${file.r2_key}`} target="_blank">下载文件</a>
+    <input class="search-bar" placeholder="搜索文件..." />
+    <div class="category-tabs">
+      <button class="tab active">All</button>
+      {categories.map(cat => (
+        <button class="tab">{cat}</button>
+      ))}
     </div>
-  {/each}
+
+    <div class="file-grid">
+      {files.map(file => (
+        <div class="file-card">
+          <div class="file-title">{file.name}</div>
+          <div class="file-meta">
+            <span class="file-tag">{file.category}</span>
+            <span>{file.file_type}</span>
+            <span>{Math.round(file.size / 1024)} KB</span>
+          </div>
+          <div>📅 {file.upload_date}</div>
+          <div class="file-actions">
+            <button class="btn btn-preview">👁️ 预览</button>
+            <a href={`${R2_BASE_URL}/${file.r2_key}`} target="_blank" style="flex:1;">
+              <button class="btn btn-download" style="width:100%;">⬇️ 下载</button>
+            </a>
+          </div>
+        </div>
+      ))}
+    </div>
+  </main>
 </body>
 </html>
