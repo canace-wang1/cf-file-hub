@@ -1,16 +1,23 @@
 ---
-// 运行时从 D1 读取数据（SSR 模式下才能生效）
-let files = [];
-let error = null;
-
-try {
-  const { results } = await process.env.DB.prepare(`
-    SELECT * FROM files ORDER BY upload_date DESC
-  `).all();
-  files = results;
-} catch (err) {
-  error = err.message;
-}
+// 先写死数据，确保页面能正常显示和下载
+const files = [
+  {
+    name: "Customer-facing AI Security Suite Deck.pptx",
+    category: "AI产品",
+    file_type: "PPTX",
+    size: 512000,
+    r2_key: "AI/Product Info - PPT PDF/Customer-facing AI Security Suite Deck (SASE focus).pptx",
+    upload_date: "2025-05-19"
+  },
+  {
+    name: "Cloudflare 基础操作手册 V1.0.pdf",
+    category: "域名服务",
+    file_type: "PDF",
+    size: 256000,
+    r2_key: "domain/Cloudflare%E5%9F%BA%E7%A1%80%E6%93%8D%E4%BD%9C%E6%89%8B%E5%86%8C%20V1.0.pdf",
+    upload_date: "2025-05-19"
+  }
+];
 
 const categories = [...new Set(files.map(f => f.category))];
 const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
@@ -54,7 +61,6 @@ const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
       border-radius: 20px;
       background: #f1f5f9;
       cursor: pointer;
-      transition: all 0.2s;
     }
     .tab.active { background: #f97316; color: white; }
     .file-grid {
@@ -87,20 +93,15 @@ const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
     }
     .btn-preview { background: #f1f5f9; }
     .btn-download { background: #f97316; color: white; }
-    .error { background: #fee; color: #a00; padding: 1rem; border-radius: 8px; margin-bottom: 1rem; }
   </style>
 </head>
 <body>
   <header class="header">
     <h1>文件<span>管理</span></h1>
-    <p>从 D1 数据库 + R2 存储实时加载文件</p>
+    <p>从 R2 存储直接加载文件，支持下载</p>
   </header>
 
   <main class="container">
-    {#if error}
-      <div class="error">❌ 读取数据库失败: {error}</div>
-    {/if}
-
     <input class="search-bar" placeholder="搜索文件..." />
     <div class="category-tabs">
       <button class="tab active">All</button>
