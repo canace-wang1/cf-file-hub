@@ -1,5 +1,5 @@
 ---
-// 直接从 D1 数据库读取数据
+// 从 D1 读取文件列表
 let files = [];
 try {
   const { results } = await process.env.DB.prepare(`
@@ -12,6 +12,9 @@ try {
 
 // 提取所有分类
 const categories = [...new Set(files.map(f => f.category))];
+
+// 你的 R2 公开访问地址
+const R2_BASE_URL = "https://ppt.test.yaozi1350.cc";
 ---
 
 <!DOCTYPE html>
@@ -90,7 +93,7 @@ const categories = [...new Set(files.map(f => f.category))];
 <body>
   <header class="header">
     <h1>文件<span>管理</span></h1>
-    <p>从 D1 数据库实时加载文件</p>
+    <p>从 D1 数据库实时加载文件，支持直接下载</p>
   </header>
 
   <main class="container">
@@ -114,7 +117,9 @@ const categories = [...new Set(files.map(f => f.category))];
           <div>📅 {file.upload_date}</div>
           <div class="file-actions">
             <button class="btn btn-preview">👁️ 预览</button>
-            <button class="btn btn-download">⬇️ 下载</button>
+            <a href={`${R2_BASE_URL}/${file.r2_key}`} target="_blank" style="flex:1;">
+              <button class="btn btn-download" style="width:100%;">⬇️ 下载</button>
+            </a>
           </div>
         </div>
       ))}
